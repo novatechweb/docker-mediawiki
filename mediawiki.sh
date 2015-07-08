@@ -7,23 +7,23 @@ set -e
 # check state before performing
 case ${1} in
     backup)
-        if [[ -f ${HOST_WIKI_BACKUP_DIR}/${STATIC_BACKUP_FILE} ]] ; then
+        if [[ -f ${HOST_WIKI_BACKUP_DIR}${STATIC_BACKUP_FILE} ]] ; then
             echo "Removing existing backup file: ${STATIC_BACKUP_FILE}"
-            rm -f ${HOST_WIKI_BACKUP_DIR}/${STATIC_BACKUP_FILE}
+            rm -f ${HOST_WIKI_BACKUP_DIR}${STATIC_BACKUP_FILE}
         fi
-        if [[ -f ${HOST_WIKI_BACKUP_DIR}/${DATABASE_BACKUP_FILE} ]] ; then
+        if [[ -f ${HOST_WIKI_BACKUP_DIR}${DATABASE_BACKUP_FILE} ]] ; then
             echo "Removing existing backup file: ${DATABASE_BACKUP_FILE}"
-            rm -f ${HOST_WIKI_BACKUP_DIR}/${DATABASE_BACKUP_FILE}
+            rm -f ${HOST_WIKI_BACKUP_DIR}${DATABASE_BACKUP_FILE}
         fi
         ;;
 
     restore)
         error="FALSE"
-        if [[ ! -f ${HOST_WIKI_RESTORE_DIR}/${STATIC_BACKUP_FILE} ]] ; then
+        if [[ ! -f ${HOST_WIKI_RESTORE_DIR}${STATIC_BACKUP_FILE} ]] ; then
             echo "[ERROR] File not found: ${STATIC_BACKUP_FILE}"
             error="TRUE"
         fi
-        if [[ ! -f ${HOST_WIKI_RESTORE_DIR}/${DATABASE_BACKUP_FILE} ]] ; then
+        if [[ ! -f ${HOST_WIKI_RESTORE_DIR}${DATABASE_BACKUP_FILE} ]] ; then
             echo "[ERROR] File not found: ${DATABASE_BACKUP_FILE}"
             error="TRUE"
         fi
@@ -125,7 +125,7 @@ case ${1} in
                 --directory=/ \
                 --to-stdout \
                 /var/www-shared/html \
-            > ${HOST_WIKI_BACKUP_DIR}/${STATIC_BACKUP_FILE}
+            > ${HOST_WIKI_BACKUP_DIR}${STATIC_BACKUP_FILE}
                 #--sort=name \
         fi
 
@@ -145,7 +145,7 @@ case ${1} in
                 --hex-blob \
                 --tz-utc \
                 wikidb \
-            > ${HOST_WIKI_BACKUP_DIR}/${DATABASE_BACKUP_FILE}
+            > ${HOST_WIKI_BACKUP_DIR}${DATABASE_BACKUP_FILE}
         fi
         ;;
 
@@ -179,7 +179,7 @@ case ${1} in
         then
             echo "Restoring the mediawiki static files backup"
             sudo true
-            cat ${HOST_WIKI_RESTORE_DIR}/${STATIC_BACKUP_FILE} | \
+            cat ${HOST_WIKI_RESTORE_DIR}${STATIC_BACKUP_FILE} | \
             sudo docker exec -i \
               ${WIKI_CONTAINER_NAME} \
               /bin/tar \
@@ -195,6 +195,24 @@ case ${1} in
               /bin/sed -ie \
                 's|$wgServer = "http://.*|$wgServer = "http://'${WIKI_HOSTNAME}'";|' \
                 /var/www-shared/html/LocalSettings.php
+            echo "Set database/wgDBname for database"
+            sudo docker exec \
+              ${WIKI_CONTAINER_NAME} \
+              /bin/sed -ie \
+                's|$wgDBname = .*|$wgDBname = "'${WIKI_DB_NAME}'";|' \
+                /var/www-shared/html/LocalSettings.php
+            echo "Set username/wgDBuser for database access"
+            sudo docker exec \
+              ${WIKI_CONTAINER_NAME} \
+              /bin/sed -ie \
+                's|$wgDBuser = .*|$wgDBuser = "'${WIKI_DB_USER}'";|' \
+                /var/www-shared/html/LocalSettings.php
+            echo "Set password/wgDBpassword for database access"
+            sudo docker exec \
+              ${WIKI_CONTAINER_NAME} \
+              /bin/sed -ie \
+                's|$wgDBpassword = .*|$wgDBpassword = "'${WIKI_DB_PASSWORD}'";|' \
+                /var/www-shared/html/LocalSettings.php
         fi
 
         # ************************************************************
@@ -203,7 +221,7 @@ case ${1} in
         then
             echo "Restoring the mediawiki database backup"
             sudo true
-            cat ${HOST_WIKI_RESTORE_DIR}/${DATABASE_BACKUP_FILE} | \
+            cat ${HOST_WIKI_RESTORE_DIR}${DATABASE_BACKUP_FILE} | \
             sudo docker exec -i \
               "${WIKI_DB_CONTAINER_NAME}" \
               mysql \
@@ -245,3 +263,7 @@ sudo docker exec \
     -i \
     's|^$wgReadOnly = .*;$|#wgReadOnly|' \
     /var/www-shared/html/LocalSettings.php
+
+# ************************************************************
+# restart the docker container
+sudo docker restart ${WIKI_CONTAINER_NAME}
