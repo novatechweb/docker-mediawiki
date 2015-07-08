@@ -3,7 +3,7 @@
 #
 # Version 0.1
 
-FROM synctree/mediawiki:latest
+FROM synctree/mediawiki:1.24
 MAINTAINER Joseph Lutz <Joseph.Lutz@novatechweb.com>
 
 RUN apt-get update && \
