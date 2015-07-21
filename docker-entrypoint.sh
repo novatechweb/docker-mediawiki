@@ -32,17 +32,6 @@ fi
 
 WIKI_BASE_DIR=$(pwd)
 
-copy_mediawiki() {
-    if [[ $(ls -A1 ${WIKI_BASE_DIR} | wc -l) == '0' ]]; then
-        # initial setup of mediawiki
-        if [[ ! -e ${WIKI_BASE_DIR}/index.php ]] || [[ ! -e ${WIKI_BASE_DIR}/includes/DefaultSettings.php ]]; then
-            echo >&2 "Installing MediaWiki into ${WIKI_BASE_DIR} - copying now..."
-            tar cf - --one-file-system -C /usr/src/mediawiki . | tar xf -
-        fi
-    fi
-}
-copy_mediawiki
-
 lock_mediawiki() {
     # Make certian line exists in settings file
     grep -q 'wgReadOnly' ${WIKI_BASE_DIR}/LocalSettings.php || \
@@ -64,6 +53,14 @@ unlock_mediawiki() {
         ${WIKI_BASE_DIR}/LocalSettings.php
     echo >&2 "MediaWiki unlocked to read-write mode"
 }
+
+if [[ $(ls -A1 ${WIKI_BASE_DIR} | wc -l) == '0' ]]; then
+    # initial setup of mediawiki
+    if [[ ! -e ${WIKI_BASE_DIR}/index.php ]] || [[ ! -e ${WIKI_BASE_DIR}/includes/DefaultSettings.php ]]; then
+        echo >&2 "Installing MediaWiki into ${WIKI_BASE_DIR} - copying now..."
+        tar cf - --one-file-system -C /usr/src/mediawiki . | tar xf -
+    fi
+fi
 
 # Set the server name
 if [[ ! -z "${WIKI_HOSTNAME}" ]]; then
@@ -148,14 +145,9 @@ case ${1} in
         ;;
 
     restore)
-        # set MediWiki to read only
         if [[ -w ${WIKI_BASE_DIR}/LocalSettings.php ]]; then \
             lock_mediawiki
         fi
-        echo >&2 "Remove all previous content"
-        rm -rf ${WIKI_BASE_DIR}/*
-        # setup MediaWiki
-        copy_mediawiki
         echo >&2 "Extract the archive"
         /bin/tar \
             --extract \
