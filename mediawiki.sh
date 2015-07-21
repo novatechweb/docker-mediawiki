@@ -16,15 +16,15 @@ case ${1} in
     restore)
         if [[ ! -f ${HOST_WIKI_RESTORE_DIR}${STATIC_BACKUP_FILE} ]] && \
            [[ ! -f ${HOST_WIKI_RESTORE_DIR}${DATABASE_BACKUP_FILE} ]]; then
-            echo "ERROR: The mediawiki files to restore was not found!"
+            echo >&2 "ERROR: The mediawiki files to restore was not found!"
             exit 1
         fi
         ;;
 
     *)
-        echo "Usage:"
-        echo "  mediawiki.sh <backup | restore> [-u <DB username>] [-p <DB password>]"
-        echo ""
+        echo >&2 "Usage:"
+        echo >&2 "  mediawiki.sh <backup | restore> [-u <DB username>] [-p <DB password>]"
+        echo >&2 ""
         exit 0
         ;;
 esac
@@ -40,11 +40,11 @@ while getopts ":u:p:" opt ${@:2}; do
             dbpass=${OPTARG}
             ;;
         \?)
-            echo "Invalid argument: ${opt} ${OPTARG}"
-            echo ""
-            echo "Usage:"
-            echo "  mediawiki.sh <backup | restore> [-u <DB username>] [-p <DB password>]"
-            echo ""
+            echo >&2 "Invalid argument: ${opt} ${OPTARG}"
+            echo >&2 ""
+            echo >&2 "Usage:"
+            echo >&2 "  mediawiki.sh <backup | restore> [-u <DB username>] [-p <DB password>]"
+            echo >&2 ""
             exit 1
             ;;
     esac
@@ -77,23 +77,23 @@ eval $(get_db_user_and_password)
 
 wait_for_mediawiki_start() {
     count=0
-    printf 'Wait for MediaWiki running:  '
+    printf >&2 'Wait for MediaWiki running:  '
     while ! \
         docker exec "${WIKI_CONTAINER_NAME}" \
           ls /var/www/html/index.php &> /dev/null
     do
         sleep 1
-        printf '.'
+        printf >&2 '.'
         (( ${count} > 60 )) && exit 1
         count=$((count+1))
     done
-    printf '\n'
+    printf >&2 '\n'
 }
 wait_for_mediawiki_start
 
 wait_for_database_start() {
     count=0
-    printf 'Wait for MySQL running:  '
+    printf >&2 'Wait for MySQL running:  '
     while ! \
         echo "SHOW GLOBAL STATUS;" | \
             docker exec -i "${WIKI_DB_CONTAINER_NAME}" \
@@ -104,11 +104,11 @@ wait_for_database_start() {
                   wikidb &> /dev/null
     do
         sleep 1
-        printf '.'
+        printf >&2 '.'
         (( ${count} > 60 )) && exit 1
         count=$((count+1))
     done
-    printf '\n'
+    printf >&2 '\n'
 }
 
 case ${1} in
@@ -117,11 +117,11 @@ case ${1} in
             echo >&2 "Could not determine database user and/or password"
             exit 1
         fi
-        echo "Backing up MediaWiki static files"
+        echo >&2 "Backing up MediaWiki static files"
         docker exec ${WIKI_CONTAINER_NAME} /docker-entrypoint.sh backup \
             > ${HOST_WIKI_BACKUP_DIR}${STATIC_BACKUP_FILE}
         wait_for_database_start
-        echo "Backing up MediaWiki database"
+        echo >&2 "Backing up MediaWiki database"
         docker exec "${WIKI_DB_CONTAINER_NAME}" \
             mysqldump \
                 --host=localhost \
@@ -133,13 +133,13 @@ case ${1} in
                 --tz-utc \
                 ${WIKI_DB_DB_NAME} \
             > ${HOST_WIKI_BACKUP_DIR}${DATABASE_BACKUP_FILE}
-        echo "Unlocking MediaWiki"
+        echo >&2 "Unlocking MediaWiki"
         docker exec ${WIKI_CONTAINER_NAME} /docker-entrypoint.sh unlock
         ;;
 
     restore)
         if [[ ! -f ${HOST_WIKI_RESTORE_DIR}${STATIC_BACKUP_FILE} ]]; then
-            echo "Lock MediaWiki"
+            echo >&2 "Lock MediaWiki"
             docker exec "${WIKI_CONTAINER_NAME}" /docker-entrypoint.sh lock
         else
             auth_options=''
@@ -149,7 +149,7 @@ case ${1} in
             if [[ ! -z "${db_password}" ]]; then
                 auth_options="${auth_options} -p ${db_password}"
             fi
-            echo "Restore MediaWiki static files"
+            echo >&2 "Restore MediaWiki static files"
             docker exec -i "${WIKI_CONTAINER_NAME}" /docker-entrypoint.sh restore ${auth_options} < \
                  ${HOST_WIKI_RESTORE_DIR}${STATIC_BACKUP_FILE}
             if [[ ! -z "${dbuser}" ]] || [[ ! -z "${dbpass}" ]]; then
@@ -178,7 +178,7 @@ case ${1} in
                 echo >&2 "Could not determine database user and/or password"
                 exit 1
             fi
-            echo "Restore MediaWiki database"
+            echo >&2 "Restore MediaWiki database"
             docker exec -i "${WIKI_DB_CONTAINER_NAME}" \
                 mysql \
                   --host=localhost \
@@ -187,9 +187,9 @@ case ${1} in
                   ${WIKI_DB_DB_NAME} < \
                 ${HOST_WIKI_RESTORE_DIR}${DATABASE_BACKUP_FILE}
         fi
-        echo "Run update.php maintenance script"
+        echo >&2 "Run update.php maintenance script"
         docker exec "${WIKI_CONTAINER_NAME}" /docker-entrypoint.sh update
-        echo "Finished running script"
+        echo >&2 "Finished running script"
         ;;
 esac
 
