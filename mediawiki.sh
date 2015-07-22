@@ -57,9 +57,8 @@ docker inspect ${WIKI_DV_NAME} > /dev/null
 docker inspect ${WIKI_DB_DV_NAME} > /dev/null
 
 get_db_user_and_password() {
-    lines="$(docker exec ${WIKI_CONTAINER_NAME} grep -e '^$wgDBuser' -e '^$wgDBpassword' LocalSettings.php &> /dev/null || true)"
-    db_user="$(echo ${lines}|grep '$wgDBuser'|sed 's|^.* = "\(.*\)";$|\1|')"
-    db_password="$(echo ${lines}|grep '$wgDBpassword'|sed 's|^.* = "\(.*\)";$|\1|')"
+    db_user="$(docker 2>&1 exec ${WIKI_CONTAINER_NAME} grep -e '^$wgDBuser' LocalSettings.php|sed 's|^.* = \"\(.*\)\";$|\1|' || true)"
+    db_password="$(docker 2>&1 exec ${WIKI_CONTAINER_NAME} grep -e '^$wgDBpassword' LocalSettings.php|sed 's|^.* = \"\(.*\)\";$|\1|' || true)"
     if [[ ! -z "${dbuser}" ]]; then
         db_user="${dbuser}"
     fi
@@ -113,7 +112,7 @@ wait_for_database_start() {
 
 case ${1} in
     backup)
-        if [[ -z ${db_user} ]] || [[ -z ${db_password} ]]; then
+        if [[ -z "${db_user}" ]] || [[ -z "${db_password}" ]]; then
             echo >&2 "Could not determine database user and/or password"
             exit 1
         fi
@@ -174,7 +173,7 @@ case ${1} in
         fi
         if [[ -f ${HOST_WIKI_RESTORE_DIR}${DATABASE_BACKUP_FILE} ]]; then
             wait_for_database_start
-            if [[ -z ${db_user} ]] || [[ -z ${db_password} ]]; then
+            if [[ -z "${db_user}" ]] || [[ -z "${db_password}" ]]; then
                 echo >&2 "Could not determine database user and/or password"
                 exit 1
             fi
