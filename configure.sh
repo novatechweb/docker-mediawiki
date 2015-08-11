@@ -2,7 +2,7 @@
 set -e
 
 # comment out apache2 config file lines that reference the environment variables
-sed -i 's|^Mutex file/|Mutex file|' /etc/apache2/apache2.conf
+sed -i 's|^Mutex file|#Mutex file|' /etc/apache2/apache2.conf
 sed -i 's|^PidFile |#PidFile |' /etc/apache2/apache2.conf
 sed -i 's|^User |#User |' /etc/apache2/apache2.conf
 sed -i 's|^Group |#Group |' /etc/apache2/apache2.conf
