@@ -40,6 +40,8 @@ RUN mkdir -p /usr/src/mediawiki /var/www-shared/html && \
     curl "https://extdist.wmflabs.org/dist/extensions/LdapAuthentication-REL1_25-d4db6f0.tar.gz" | \
         tar xzC /usr/src/mediawiki/extensions && \
     curl "https://extdist.wmflabs.org/dist/extensions/UserMerge-REL1_25-22c450d.tar.gz" | \
+        tar xzC /usr/src/mediawiki/extensions && \
+    curl "https://extdist.wmflabs.org/dist/extensions/Renameuser-REL1_25-a1d37af.tar.gz" | \
         tar xzC /usr/src/mediawiki/extensions
 
 # copy over files
