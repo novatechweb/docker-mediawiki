@@ -18,6 +18,8 @@ set -e
 # WIKI_DB_DB_NAME  : WIKI_DB_DB_NAME,  WIKI_DB_ENV_MYSQL_DATABASE | WIKI_DB_ENV_POSTGRES_DB,       LocalSettings.php ( $wgDBname )
 # WIKI_DB_USER     : WIKI_DB_USER,     WIKI_DB_ENV_MYSQL_USER | WIKI_DB_ENV_POSTGRES_USER,         LocalSettings.php ( $wgDBuser )
 # WIKI_DB_PASSWORD : WIKI_DB_PASSWORD, WIKI_DB_ENV_MYSQL_PASSWORD | WIKI_DB_ENV_POSTGRES_PASSWORD, LocalSettings.php ( $wgDBpassword )
+# WIKI_MAIL_USER     : WIKI_MAIL_USER,     config_inc.php ( $g_smtp_username )
+# WIKI_MAIL_PASSWORD : WIKI_MAIL_PASSWORD, config_inc.php ( $g_smtp_password )
 
 if [[ ! -z "${WIKI_DB_ENV_MYSQL_VERSION}" ]]; then
     WIKI_DB_DB_NAME=${WIKI_DB_DB_NAME:-${WIKI_DB_ENV_MYSQL_DATABASE}}
@@ -91,6 +93,12 @@ update_LocalSettings() {
         fi
         if [[ ! -z "${WIKI_DB_PASSWORD}" ]]; then \
             sed -i 's|$wgDBpassword = .*|$wgDBpassword = "'${WIKI_DB_PASSWORD}'";|' ${WIKI_BASE_DIR}/LocalSettings.php
+        fi
+        if [[ ! -z "${WIKI_MAIL_USER}" ]] && grep -q "^ *'username'\( *=> \).*$" ${MANTISBT_BASE_DIR}/config_inc.php ; then \
+            sed -i "s| *'username'\( *=> \).*| 'username'\1'${WIKI_MAIL_USER}',|" ${MANTISBT_BASE_DIR}/config_inc.php
+        fi
+        if [[ ! -z "${WIKI_MAIL_PASSWORD}" ]] && grep -q "^ *'username'\( *=> \).*$" ${MANTISBT_BASE_DIR}/config_inc.php ; then \
+            sed -i "s| *'password'\( *=> \).*| 'password'\1'${WIKI_MAIL_PASSWORD}',|" ${MANTISBT_BASE_DIR}/config_inc.php
         fi
     fi
 }
