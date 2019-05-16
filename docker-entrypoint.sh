@@ -146,7 +146,8 @@ case ${1} in
             --same-owner \
             --directory=${WIKI_BASE_DIR} \
             --to-stdout \
-            ./*
+            LocalSettings.php \
+            images/
         # Now backup the database and then unlock MediaWiki
         ;;
 
